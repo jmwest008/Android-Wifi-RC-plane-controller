@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="primary">#FF2196F3</color>
+    <color name="primary_dark">#FF1976D2</color>
+    <color name="accent">#FFFF5722</color>
+    <color name="joystick_background">#40000000</color>
+    <color name="joystick_knob">#FF4CAF50</color>
+    <color name="armed_color">#FFFF5722</color>
+    <color name="disarmed_color">#FF4CAF50</color>
+    <color name="throttle_background">#40000000</color>
+    <color name="throttle_track">#FF9E9E9E</color>
+</resources>

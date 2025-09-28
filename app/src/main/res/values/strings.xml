@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RC Plane Controller</string>
+    <string name="arm">ARM</string>
+    <string name="disarm">DISARM</string>
+    <string name="throttle">Throttle</string>
+    <string name="pitch_roll">Pitch/Roll</string>
+    <string name="yaw">Yaw</string>
+    <string name="connection_status">Connection Status</string>
+    <string name="connected">Connected</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="connecting">Connecting...</string>
+</resources>
