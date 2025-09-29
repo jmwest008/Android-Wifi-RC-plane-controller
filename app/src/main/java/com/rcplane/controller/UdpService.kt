@@ -15,7 +15,7 @@ class UdpService {
     // Pico W default AP settings
     private var targetAddress: InetAddress? = null
     private val targetPort = 4444
-    private val sendRate = 50L // 20Hz (50ms interval)
+    private val sendRate = 20L // 50Hz (20ms interval)
     
     // Flight control data
     data class FlightData(
