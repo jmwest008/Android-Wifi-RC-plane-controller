@@ -1,6 +1,7 @@
 package com.rcplane.controller
 
 import kotlinx.coroutines.*
+import java.util.concurrent.atomic.AtomicReference
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -25,9 +26,9 @@ class UdpService {
         val throttle: Int = 0,     // 0 to 100
         val armed: Boolean = false
     )
-    
-    private var currentData = FlightData()
-    
+
+    private val currentData = AtomicReference(FlightData())
+
     fun updateFlightData(
         roll: Float? = null,
         pitch: Float? = null, 
@@ -35,13 +36,15 @@ class UdpService {
         throttle: Int? = null,
         armed: Boolean? = null
     ) {
-        currentData = currentData.copy(
-            roll = roll ?: currentData.roll,
-            pitch = pitch ?: currentData.pitch,
-            yaw = yaw ?: currentData.yaw,
-            throttle = throttle ?: currentData.throttle,
-            armed = armed ?: currentData.armed
-        )
+        currentData.updateAndGet { existing ->
+            existing.copy(
+                roll = roll ?: existing.roll,
+                pitch = pitch ?: existing.pitch,
+                yaw = yaw ?: existing.yaw,
+                throttle = throttle ?: existing.throttle,
+                armed = armed ?: existing.armed
+            )
+        }
     }
     
     fun startService(ipAddress: String = "192.168.4.1"): Boolean {
@@ -82,16 +85,16 @@ class UdpService {
     private suspend fun sendFlightData() {
         val targetAddr = targetAddress ?: return
         val sock = socket ?: return
-        
-        // Create binary packet: 4 floats + 1 int + 1 boolean = 21 bytes
-        val buffer = ByteBuffer.allocate(21).apply {
+
+        val snapshot = currentData.get()
+
+        // Create binary packet: 4 floats = 16 bytes
+        val buffer = ByteBuffer.allocate(16).apply {
             order(ByteOrder.LITTLE_ENDIAN)
-            putFloat(currentData.roll)
-            putFloat(currentData.pitch) 
-            putFloat(currentData.yaw)
-            putFloat(currentData.throttle / 100f) // Normalize to 0-1
-            putInt(if (currentData.armed) 1 else 0)
-            put(if (currentData.armed) 1.toByte() else 0.toByte())
+            putFloat(snapshot.roll)
+            putFloat(snapshot.pitch)
+            putFloat(snapshot.yaw)
+            putFloat(snapshot.throttle / 100f) // Normalize to 0-1
         }
         
         val packet = DatagramPacket(
