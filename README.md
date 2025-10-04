@@ -26,13 +26,13 @@ A Kotlin Android application for controlling a Raspberry Pi Pico W-based RC plan
 
 The app sends 21-byte UDP packets with the following structure:
 
-| Field | Type | Size | Range | Description |
-|-------|------|------|-------|-------------|
-| Roll | float | 4 bytes | -1.0 to 1.0 | Left joystick X-axis |
-| Pitch | float | 4 bytes | -1.0 to 1.0 | Left joystick Y-axis |
-| Yaw | float | 4 bytes | -1.0 to 1.0 | Right joystick X-axis |
-| Throttle | float | 4 bytes | 0.0 to 1.0 | Throttle slider (normalized) |
-| Armed | int + byte | 5 bytes | 0 or 1 | Safety arm/disarm status |
+| Field    | Type       | Size    | Range       | Description                  |
+|----------|------------|---------|-------------|------------------------------|
+| Roll     | float      | 4 bytes | -1.0 to 1.0 | Left joystick X-axis         |
+| Pitch    | float      | 4 bytes | -1.0 to 1.0 | Left joystick Y-axis         |
+| Yaw      | float      | 4 bytes | -1.0 to 1.0 | Right joystick X-axis        |
+| Throttle | float      | 4 bytes | 0.0 to 1.0  | Throttle slider (normalized) |
+| Armed    | int + byte | 5 bytes | 0 or 1      | Safety arm/disarm status     |
 
 Data is sent in little-endian format for compatibility with microcontrollers.
 

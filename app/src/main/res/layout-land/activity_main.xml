@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF263238"
+    tools:context=".MainActivity"
+    tools:ignore="Overdraw">
+
+    <!-- Connection Status -->
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/disconnected"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Left Joystick (Pitch/Roll) -->
+    <com.rcplane.controller.JoystickView
+        android:id="@+id/leftJoystick"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginBottom="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/leftJoystickLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/pitch_roll"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="@+id/leftJoystick"
+        app:layout_constraintStart_toStartOf="@+id/leftJoystick"
+        app:layout_constraintTop_toBottomOf="@+id/leftJoystick" />
+
+    <!-- Right Joystick (Yaw) -->
+    <com.rcplane.controller.JoystickView
+        android:id="@+id/rightJoystick"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/rightJoystickLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/yaw"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="@+id/rightJoystick"
+        app:layout_constraintStart_toStartOf="@+id/rightJoystick"
+        app:layout_constraintTop_toBottomOf="@+id/rightJoystick" />
+
+    <!-- ARM/DISARM Buttons (rectangular, left of throttle slider, same vertical position) -->
+    <Button
+        android:id="@+id/armButton"
+        android:layout_width="100dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="8dp"
+        android:backgroundTint="@color/disarmed_color"
+        android:text="@string/arm"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="@+id/throttleSlider"
+        app:layout_constraintBottom_toBottomOf="@+id/throttleSlider"
+        app:layout_constraintStart_toEndOf="@+id/leftJoystick"
+        />
+
+    <Button
+        android:id="@+id/disarmButton"
+        android:layout_width="100dp"
+        android:layout_height="56dp"
+        android:layout_marginEnd="16dp"
+        android:backgroundTint="@color/armed_color"
+        android:text="@string/disarm"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="@+id/throttleSlider"
+        app:layout_constraintBottom_toBottomOf="@+id/throttleSlider"
+        app:layout_constraintStart_toEndOf="@+id/armButton"
+        />
+
+    <!-- Throttle Slider (shorter and shifted right) -->
+    <SeekBar
+        android:id="@+id/throttleSlider"
+        android:layout_width="256dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="128dp"
+        android:layout_marginTop="64dp"
+        android:max="100"
+        android:progress="0"
+        android:progressTint="@color/accent"
+        android:thumbTint="@color/accent"
+        app:layout_constraintStart_toEndOf="@+id/disarmButton"
+        app:layout_constraintTop_toBottomOf="@+id/statusText"
+        />
+
+    <TextView
+        android:id="@+id/throttleLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/throttle"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toTopOf="@+id/throttleSlider"
+        app:layout_constraintEnd_toEndOf="@+id/throttleSlider"
+        app:layout_constraintStart_toStartOf="@+id/throttleSlider" />
+
+    <TextView
+        android:id="@+id/throttleValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="0%"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="@+id/throttleSlider"
+        app:layout_constraintStart_toStartOf="@+id/throttleSlider"
+        app:layout_constraintTop_toBottomOf="@+id/throttleSlider"
+        tools:ignore="HardcodedText" />
+
+    <!-- Data Display -->
+    <TextView
+        android:id="@+id/dataDisplay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:fontFamily="monospace"
+        android:text="Roll: 0.0 | Pitch: 0.0 | Yaw: 0.0 | Throttle: 0"
+        android:textColor="@color/white"
+        android:textSize="10sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/throttleValue"
+        tools:ignore="HardcodedText,SmallSp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,6 +1,6 @@
 package com.rcplane.controller
 
-import android.content.Context
+import android.annotation.SuppressLint
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
@@ -57,6 +57,7 @@ class MainActivity : AppCompatActivity() {
     
     private fun setupThrottleSlider() {
         binding.throttleSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            @SuppressLint("SetTextI18n")
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 throttle = progress
                 binding.throttleValue.text = "${progress}%"
@@ -97,6 +98,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
+    @SuppressLint("DefaultLocale")
     private fun updateDataDisplay() {
         val formattedData = String.format(
             "Roll: %.2f | Pitch: %.2f | Yaw: %.2f | Throttle: %d | Armed: %s",
@@ -123,7 +125,7 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun isWifiConnected(): Boolean {
-        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = connectivityManager.activeNetwork ?: return false
         val networkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
         return networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)

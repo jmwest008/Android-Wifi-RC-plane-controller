@@ -5,7 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FF263238"
-    tools:context=".MainActivity">
+    tools:context=".MainActivity"
+    tools:ignore="Overdraw">
 
     <!-- Connection Status -->
     <TextView
@@ -101,7 +102,8 @@
         android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="@+id/throttleSlider"
         app:layout_constraintStart_toStartOf="@+id/throttleSlider"
-        app:layout_constraintTop_toBottomOf="@+id/throttleSlider" />
+        app:layout_constraintTop_toBottomOf="@+id/throttleSlider"
+        tools:ignore="HardcodedText" />
 
     <!-- ARM/DISARM Buttons -->
     <Button
@@ -142,6 +144,7 @@
         android:textSize="10sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/disarmButton" />
+        app:layout_constraintTop_toBottomOf="@+id/disarmButton"
+        tools:ignore="HardcodedText,SmallSp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

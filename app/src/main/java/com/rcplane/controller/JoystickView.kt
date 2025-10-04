@@ -1,5 +1,6 @@
 package com.rcplane.controller
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
@@ -56,6 +57,7 @@ class JoystickView @JvmOverloads constructor(
         yValue = 0f
     }
 
+    @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
@@ -75,6 +77,7 @@ class JoystickView @JvmOverloads constructor(
         canvas.drawCircle(knobX, knobY, knobRadius, knobPaint)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
