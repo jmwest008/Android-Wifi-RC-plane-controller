@@ -19,7 +19,7 @@ AP_PASSWORD = "rcplane123"
 
 # Network settings
 UDP_PORT = 4444
-BUFFER_SIZE = 21
+BUFFER_SIZE = 16
 
 # Initialize access point
 def setup_ap():
@@ -42,22 +42,20 @@ def setup_udp():
     print(f"UDP server listening on port {UDP_PORT}")
     return sock
 
-# Parse flight control packet (21 bytes)
+# Parse flight control packet (16 bytes)
 def parse_flight_data(data):
-    if len(data) != 21:
+    if len(data) != BUFFER_SIZE:
         return None
     
     try:
-        # Unpack binary data: 4 floats + 1 int + 1 byte
-        roll, pitch, yaw, throttle_norm, armed_int = struct.unpack('<ffffI', data[:20])
-        armed_byte = data[20]
-        
+        # Unpack binary data: roll, pitch, yaw, throttle
+        roll, pitch, yaw, throttle_norm = struct.unpack('<ffff', data)
+
         return {
             'roll': roll,           # -1.0 to 1.0
-            'pitch': pitch,         # -1.0 to 1.0  
-            'yaw': yaw,            # -1.0 to 1.0
-            'throttle': int(throttle_norm * 100),  # 0 to 100
-            'armed': bool(armed_int and armed_byte)
+            'pitch': pitch,         # -1.0 to 1.0
+            'yaw': yaw,             # -1.0 to 1.0
+            'throttle': int(throttle_norm * 100)  # 0 to 100
         }
     except:
         return None
@@ -112,29 +110,23 @@ def main():
             
             if flight_data:
                 last_packet_time = current_time
-                
-                if flight_data['armed']:
-                    # Convert to servo positions
-                    roll_pos, pitch_pos, yaw_pos, throttle_pos = controls_to_servo(
-                        flight_data['roll'],
-                        flight_data['pitch'], 
-                        flight_data['yaw'],
-                        flight_data['throttle']
-                    )
-                    
-                    # Apply servo positions
-                    roll_pwm.duty_u16(int(roll_pos * 65535 / 20000))
-                    pitch_pwm.duty_u16(int(pitch_pos * 65535 / 20000))
-                    yaw_pwm.duty_u16(int(yaw_pos * 65535 / 20000))
-                    throttle_pwm.duty_u16(int(throttle_pos * 65535 / 20000))
-                    
-                    print(f"Controls: R:{flight_data['roll']:.2f} P:{flight_data['pitch']:.2f} Y:{flight_data['yaw']:.2f} T:{flight_data['throttle']}")
-                else:
-                    # Disarmed - set safe positions
-                    roll_pwm.duty_u16(int(1500 * 65535 / 20000))    # Center
-                    pitch_pwm.duty_u16(int(1500 * 65535 / 20000))   # Center
-                    yaw_pwm.duty_u16(int(1500 * 65535 / 20000))     # Center  
-                    throttle_pwm.duty_u16(int(1000 * 65535 / 20000)) # Min throttle
+
+
+                # Convert to servo positions
+                roll_pos, pitch_pos, yaw_pos, throttle_pos = controls_to_servo(
+                    flight_data['roll'],
+                    flight_data['pitch'],
+                    flight_data['yaw'],
+                    flight_data['throttle']
+                )
+
+                # Apply servo positions
+                roll_pwm.duty_u16(int(roll_pos * 65535 / 20000))
+                pitch_pwm.duty_u16(int(pitch_pos * 65535 / 20000))
+                yaw_pwm.duty_u16(int(yaw_pos * 65535 / 20000))
+                throttle_pwm.duty_u16(int(throttle_pos * 65535 / 20000))
+
+                print(f"Controls: R:{flight_data['roll']:.2f} P:{flight_data['pitch']:.2f} Y:{flight_data['yaw']:.2f} T:{flight_data['throttle']}")
                     
         except OSError:
             # Timeout or no data - check for safety timeout
