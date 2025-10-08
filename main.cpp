@@ -166,7 +166,7 @@ int main() {
         return 1;
     }
 
-    err_t err = udp_bind(pcb, IP_ANY_TYPE, kUdpPort);
+    err_t err = udp_bind(pcb, IP_ADDR_ANY, kUdpPort);
     if (err != ERR_OK) {
         printf("Failed to bind UDP PCB: %d\n", static_cast<int>(err));
         udp_remove(pcb);
