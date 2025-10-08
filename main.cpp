@@ -7,10 +7,8 @@
 #include "hardware/pwm.h"
 #include "pico/cyw43_arch.h"
 
-#include "lwip/errno.h"
-#include "lwip/fcntl.h"
-#include "lwip/inet.h"
-#include "lwip/sockets.h"
+#include "lwip/pbuf.h"
+#include "lwip/udp.h"
 
 namespace {
 constexpr const char *kSsid = "PicoW-RCPlane";
@@ -32,6 +30,11 @@ struct FlightPacket {
     float pitch;
     float yaw;
     float throttle_norm;
+};
+
+struct ControlState {
+    absolute_time_t last_packet;
+    bool controls_active;
 };
 
 float clamp(float value, float min, float max) {
@@ -93,6 +96,45 @@ void set_safe_mode() {
     }
 }
 
+void handle_udp_packet(ControlState *state, pbuf *packet_buffer) {
+    if (!packet_buffer || packet_buffer->tot_len != kBufferSize) {
+        return;
+    }
+
+    std::array<uint8_t, kBufferSize> buffer{};
+    pbuf_copy_partial(packet_buffer, buffer.data(), buffer.size(), 0);
+
+    FlightPacket packet;
+    if (!parse_packet(buffer, &packet)) {
+        return;
+    }
+
+    auto servo_pulses = controls_to_servo(packet);
+    for (size_t i = 0; i < kServoPins.size(); ++i) {
+        set_servo_pulse(kServoPins[i], servo_pulses[i]);
+    }
+
+    state->last_packet = get_absolute_time();
+    state->controls_active = true;
+
+    printf("Controls: R:%.2f P:%.2f Y:%.2f T:%d\n", packet.roll, packet.pitch, packet.yaw,
+           static_cast<int>(servo_pulses[3]));
+}
+
+void udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *packet_buffer, const ip_addr_t *addr,
+                          u16_t port) {
+    (void)pcb;
+    (void)addr;
+    (void)port;
+
+    auto *state = static_cast<ControlState *>(arg);
+    handle_udp_packet(state, packet_buffer);
+
+    if (packet_buffer) {
+        pbuf_free(packet_buffer);
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -110,66 +152,45 @@ int main() {
         configure_pwm_pin(pin);
     }
 
-    int sock = lwip_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (sock < 0) {
-        printf("Failed to create UDP socket: %d\n", errno);
+    set_safe_mode();
+
+    ControlState state{
+        .last_packet = get_absolute_time(),
+        .controls_active = false,
+    };
+
+    udp_pcb *pcb = udp_new();
+    if (!pcb) {
+        printf("Failed to allocate UDP control block\n");
+        cyw43_arch_deinit();
         return 1;
     }
 
-    struct sockaddr_in addr = {};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = PP_HTONL(INADDR_ANY);
-    addr.sin_port = PP_HTONS(kUdpPort);
-
-    if (lwip_bind(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) < 0) {
-        printf("Failed to bind UDP socket: %d\n", errno);
-        lwip_close(sock);
+    err_t err = udp_bind(pcb, IP_ANY_TYPE, kUdpPort);
+    if (err != ERR_OK) {
+        printf("Failed to bind UDP PCB: %d\n", static_cast<int>(err));
+        udp_remove(pcb);
+        cyw43_arch_deinit();
         return 1;
     }
 
-    int flags = lwip_fcntl(sock, F_GETFL, 0);
-    if (flags >= 0) {
-        lwip_fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-    }
+    udp_recv(pcb, udp_receive_callback, &state);
 
     printf("UDP server listening on port %u\n", kUdpPort);
-    absolute_time_t last_packet = get_absolute_time();
 
     while (true) {
-        std::array<uint8_t, kBufferSize> buffer{};
-        struct sockaddr_in source = {};
-        socklen_t source_len = sizeof(source);
-
-        int received = lwip_recvfrom(sock, buffer.data(), buffer.size(), 0,
-                                     reinterpret_cast<struct sockaddr *>(&source), &source_len);
-
-        if (received == static_cast<int>(kBufferSize)) {
-            FlightPacket packet;
-            if (parse_packet(buffer, &packet)) {
-                last_packet = get_absolute_time();
-                auto servo_pulses = controls_to_servo(packet);
-
-                for (size_t i = 0; i < kServoPins.size(); ++i) {
-                    set_servo_pulse(kServoPins[i], servo_pulses[i]);
-                }
-
-                printf("Controls: R:%.2f P:%.2f Y:%.2f T:%d\n", packet.roll, packet.pitch, packet.yaw,
-                       static_cast<int>(servo_pulses[3]));
-            }
-        } else if (received < 0) {
-            if (errno != EWOULDBLOCK && errno != EAGAIN) {
-                printf("Socket error: %d\n", errno);
-            }
-        }
-
-        if (absolute_time_diff_us(last_packet, get_absolute_time()) > kSafetyTimeoutMs * 1000) {
+        absolute_time_t now = get_absolute_time();
+        if (state.controls_active &&
+            absolute_time_diff_us(state.last_packet, now) > kSafetyTimeoutMs * 1000) {
             set_safe_mode();
+            state.controls_active = false;
         }
 
         cyw43_arch_poll();
         sleep_ms(10);
     }
 
+    udp_remove(pcb);
     cyw43_arch_deinit();
     return 0;
 }
