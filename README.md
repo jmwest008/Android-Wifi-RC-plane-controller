@@ -24,17 +24,30 @@ A Kotlin Android application for controlling a Raspberry Pi Pico W-based RC plan
 
 ## Network Protocol
 
-The app sends 21-byte UDP packets with the following structure:
+The app streams a compact 16-byte UDP packet 50 times per second. All numeric
+fields are little-endian IEEE-754 floats so the Pico W can `memcpy` directly
+into a C++ struct:
 
-| Field    | Type       | Size    | Range       | Description                  |
-|----------|------------|---------|-------------|------------------------------|
-| Roll     | float      | 4 bytes | -1.0 to 1.0 | Left joystick X-axis         |
-| Pitch    | float      | 4 bytes | -1.0 to 1.0 | Left joystick Y-axis         |
-| Yaw      | float      | 4 bytes | -1.0 to 1.0 | Right joystick X-axis        |
-| Throttle | float      | 4 bytes | 0.0 to 1.0  | Throttle slider (normalized) |
-| Armed    | int + byte | 5 bytes | 0 or 1      | Safety arm/disarm status     |
+| Field    | Type  | Size    | Range       | Description                  |
+|----------|-------|---------|-------------|------------------------------|
+| Roll     | float | 4 bytes | -1.0 to 1.0 | Left joystick X-axis         |
+| Pitch    | float | 4 bytes | -1.0 to 1.0 | Left joystick Y-axis         |
+| Yaw      | float | 4 bytes | -1.0 to 1.0 | Right joystick X-axis        |
+| Throttle | float | 4 bytes | 0.0 to 1.0  | Throttle slider (normalized) |
 
-Data is sent in little-endian format for compatibility with microcontrollers.
+The throttle slider is normalized in the Android app (`progress / 100`) so the
+Pico firmware only has to scale it to the configured ESC travel.
+
+### Control signal orientation
+
+- Moving the **left joystick to the right** reports a positive roll value.
+- `main.cpp` mirrors that single roll input into two aileron commands:
+  - The **left servo** receives a negative PWM delta, rotating clockwise and
+    driving the control surface **down**.
+  - The **right servo** receives an equal positive delta, rotating
+    counter-clockwise and pushing the surface **up**.
+- Negative roll values reverse those directions, while pitch and yaw are
+  applied symmetrically about neutral.
 
 ## Setup and Installation
 
@@ -87,7 +100,7 @@ app/src/main/res/
 Your Pico W should be configured to:
 1. Create a Wi-Fi Access Point
 2. Listen for UDP packets on port 4444
-3. Parse the 21-byte packet format described above
+3. Parse the 16-byte packet format described above
 4. Control servo motors/ESCs based on received data
 
 Example Pico W code structure:
