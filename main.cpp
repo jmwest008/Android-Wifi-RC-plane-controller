@@ -130,7 +130,7 @@ namespace {
         state->controls_active = true;
 
         printf("Controls: R:%.2f P:%.2f Y:%.2f T:%d\n", packet.roll, packet.pitch, packet.yaw,
-               static_cast<int>(servo_pulses[4]));
+               static_cast<int>(servo_pulses[3]));
     }
 
     void udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *packet_buffer, const ip_addr_t *addr,
