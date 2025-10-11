@@ -17,7 +17,8 @@ namespace {
     constexpr size_t kBufferSize = 16;
     constexpr uint32_t kSafetyTimeoutMs = 1000;
 
-    constexpr std::array<uint, 5> kServoPins = {0, 1, 2, 3, 4};
+    constexpr std::array<uint, 4> kServoPins = {0, 1, 2, 3};
+    constexpr uint kEscPin = 4;
     constexpr uint32_t kPwmWrap = 20000;           // 20 ms period -> 50 Hz
     constexpr float kPwmClockDiv = 125.0f;         // 125 MHz / 125 = 1 MHz -> 1us resolution
     constexpr uint16_t kServoNeutralUs = 1500;
@@ -62,7 +63,12 @@ namespace {
         pwm_set_chan_level(slice, channel, microseconds);
     }
 
-    std::array<uint16_t, 5> controls_to_servo(const FlightPacket &packet) {
+    struct ServoOutputs {
+        std::array<uint16_t, kServoPins.size()> surfaces;
+        uint16_t throttle;
+    };
+
+    ServoOutputs controls_to_servo(const FlightPacket &packet) {
         float roll_input = clamp(packet.roll, -1.0f, 1.0f);
         float roll_left = roll_input;
         float roll_right = roll_input;
@@ -83,7 +89,7 @@ namespace {
         uint16_t yaw_servo = static_cast<uint16_t>(kServoNeutralUs + yaw * kRudderRangeUs);
         uint16_t throttle_esc = static_cast<uint16_t>(kEscMinUs + throttle * kEscRangeUs);
 
-        return {roll_left_servo, roll_right_servo, pitch_servo, yaw_servo, throttle_esc};
+        return {{roll_left_servo, roll_right_servo, pitch_servo, yaw_servo}, throttle_esc};
     }
 
     bool parse_packet(const std::array<uint8_t, kBufferSize> &buffer, FlightPacket *out_packet) {
@@ -102,10 +108,10 @@ namespace {
     }
 
     void set_safe_mode() {
-        for (size_t i = 0; i < kServoPins.size(); ++i) {
-            uint16_t pulse = (i == kServoPins.size() - 1) ? kEscMinUs : kServoNeutralUs;
-            set_servo_pulse(kServoPins[i], pulse);
+        for (uint pin : kServoPins) {
+            set_servo_pulse(pin, kServoNeutralUs);
         }
+        set_servo_pulse(kEscPin, kEscMinUs);
     }
 
     void handle_udp_packet(ControlState *state, pbuf *packet_buffer) {
@@ -121,16 +127,17 @@ namespace {
             return;
         }
 
-        auto servo_pulses = controls_to_servo(packet);
+        auto outputs = controls_to_servo(packet);
         for (size_t i = 0; i < kServoPins.size(); ++i) {
-            set_servo_pulse(kServoPins[i], servo_pulses[i]);
+            set_servo_pulse(kServoPins[i], outputs.surfaces[i]);
         }
+        set_servo_pulse(kEscPin, outputs.throttle);
 
         state->last_packet = get_absolute_time();
         state->controls_active = true;
 
         printf("Controls: R:%.2f P:%.2f Y:%.2f T:%d\n", packet.roll, packet.pitch, packet.yaw,
-               static_cast<int>(servo_pulses[3]));
+               static_cast<int>(outputs.throttle));
     }
 
     void udp_receive_callback(void *arg, udp_pcb *pcb, pbuf *packet_buffer, const ip_addr_t *addr,
@@ -163,6 +170,7 @@ int main() {
     for (uint pin : kServoPins) {
         configure_pwm_pin(pin);
     }
+    configure_pwm_pin(kEscPin);
 
     set_safe_mode();
 
