@@ -22,9 +22,10 @@ namespace {
     constexpr uint32_t kPwmWrap = 20000;           // 20 ms period -> 50 Hz
     constexpr float kPwmClockDiv = 125.0f;         // 125 MHz / 125 = 1 MHz -> 1us resolution
     constexpr uint16_t kServoNeutralUs = 1500;
-    constexpr uint16_t kAileronRangeUs = 356;
+    constexpr uint16_t kAileronUpRangeUs = 356;
+    constexpr float kAileronDownRatio = 0.85f;
     constexpr uint16_t kElevatorRangeUs = 344;
-    constexpr uint16_t kRudderRangeUs = 333;
+    constexpr uint16_t kRudderRangeUs = 330;
     constexpr uint16_t kEscMinUs = 1000;
     constexpr uint16_t kEscRangeUs = 1000;
 
@@ -70,21 +71,28 @@ namespace {
 
     ServoOutputs controls_to_servo(const FlightPacket &packet) {
         float roll_input = clamp(packet.roll, -1.0f, 1.0f);
-        float roll_left = roll_input;
-        float roll_right = roll_input;
+        // Positive roll from the Android left joystick corresponds to sliding the knob to the
+        // right. That produces a positive PWM delta on the right aileron servo (counter-
+        // clockwise rotation/up) and a negative delta on the left servo (clockwise/down).
+        float left_deflection = roll_input;
+        float right_deflection = -roll_input;
         float pitch = clamp(packet.pitch, -1.0f, 1.0f);
         float yaw = clamp(packet.yaw, -1.0f, 1.0f);
         float throttle = clamp(packet.throttle_norm, 0.0f, 1.0f);
-        // Apply aileron differential based on your logic
-        if (roll_input >= 0) { // Right turn: left aileron goes down, right aileron goes up
-            // Reduce the downward travel of the left aileron
-            roll_left *= 0.85f;
-        } else { // Left turn: right aileron goes down, left aileron goes up
-            // Reduce the downward travel of the right aileron
-            roll_right *= 0.85f;
-        }
-        uint16_t roll_left_servo = static_cast<uint16_t>(kServoNeutralUs - roll_left * kAileronRangeUs);
-        uint16_t roll_right_servo = static_cast<uint16_t>(kServoNeutralUs - roll_right * kAileronRangeUs);
+        auto aileron_pulse = [](float deflection) {
+            float clamped = clamp(deflection, -1.0f, 1.0f);
+            float magnitude = std::fabs(clamped);
+            if (clamped >= 0.0f) {
+                float travel_us = magnitude * kAileronUpRangeUs;
+                return static_cast<uint16_t>(kServoNeutralUs - travel_us);
+            }
+
+            float travel_us = magnitude * (kAileronUpRangeUs * kAileronDownRatio);
+            return static_cast<uint16_t>(kServoNeutralUs + travel_us);
+        };
+
+        uint16_t roll_left_servo = aileron_pulse(left_deflection);
+        uint16_t roll_right_servo = aileron_pulse(right_deflection);
         uint16_t pitch_servo = static_cast<uint16_t>(kServoNeutralUs + pitch * kElevatorRangeUs);
         uint16_t yaw_servo = static_cast<uint16_t>(kServoNeutralUs + yaw * kRudderRangeUs);
         uint16_t throttle_esc = static_cast<uint16_t>(kEscMinUs + throttle * kEscRangeUs);
@@ -195,22 +203,4 @@ int main() {
     }
 
     udp_recv(pcb, udp_receive_callback, &state);
-
-    printf("UDP server listening on port %u\n", kUdpPort);
-
-    while (true) {
-        absolute_time_t now = get_absolute_time();
-        if (state.controls_active &&
-            absolute_time_diff_us(state.last_packet, now) > kSafetyTimeoutMs * 1000) {
-            set_safe_mode();
-            state.controls_active = false;
-        }
-
-        cyw43_arch_poll();
-        sleep_ms(10);
-    }
-
-    udp_remove(pcb);
-    cyw43_arch_deinit();
-    return 0;
-}
+    
