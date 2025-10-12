@@ -25,7 +25,7 @@ namespace {
     constexpr uint16_t kAileronUpRangeUs = 356;
     constexpr float kAileronDownRatio = 0.85f;
     constexpr uint16_t kElevatorRangeUs = 344;
-    constexpr uint16_t kRudderRangeUs = 330;
+    constexpr uint16_t kRudderRangeUs = 333;
     constexpr uint16_t kEscMinUs = 1000;
     constexpr uint16_t kEscRangeUs = 1000;
 
@@ -72,27 +72,42 @@ namespace {
     ServoOutputs controls_to_servo(const FlightPacket &packet) {
         float roll_input = clamp(packet.roll, -1.0f, 1.0f);
         // Positive roll from the Android left joystick corresponds to sliding the knob to the
-        // right. That produces a positive PWM delta on the right aileron servo (counter-
-        // clockwise rotation/up) and a negative delta on the left servo (clockwise/down).
+        // right. The firmware forwards that positive value to both aileron channels; servo
+        // orientation then determines whether the control surface moves up or down. Both servos
+        // rotate clockwise (negative PWM delta) for a positive roll input: the right aileron moves
+        // up while the left moves down.
         float left_deflection = roll_input;
-        float right_deflection = -roll_input;
+        float right_deflection = roll_input;
         float pitch = clamp(packet.pitch, -1.0f, 1.0f);
         float yaw = clamp(packet.yaw, -1.0f, 1.0f);
         float throttle = clamp(packet.throttle_norm, 0.0f, 1.0f);
-        auto aileron_pulse = [](float deflection) {
+        auto aileron_pulse = [](float deflection, bool is_right_servo) {
             float clamped = clamp(deflection, -1.0f, 1.0f);
             float magnitude = std::fabs(clamped);
-            if (clamped >= 0.0f) {
-                float travel_us = magnitude * kAileronUpRangeUs;
-                return static_cast<uint16_t>(kServoNeutralUs - travel_us);
+
+            // Interpret the command as "surface up" or "surface down" for the specific servo.
+            bool surface_up = is_right_servo ? (clamped >= 0.0f) : (clamped <= 0.0f);
+            float travel_us = magnitude *
+                              (surface_up ? kAileronUpRangeUs
+                                           : (kAileronUpRangeUs * kAileronDownRatio));
+
+            if (is_right_servo) {
+                // Right servo: clockwise (negative PWM delta) drives the surface up.
+                if (surface_up) {
+                    return static_cast<uint16_t>(kServoNeutralUs - travel_us);
+                }
+                return static_cast<uint16_t>(kServoNeutralUs + travel_us);
             }
 
-            float travel_us = magnitude * (kAileronUpRangeUs * kAileronDownRatio);
-            return static_cast<uint16_t>(kServoNeutralUs + travel_us);
+            // Left servo: clockwise drives the surface down, counter-clockwise drives it up.
+            if (surface_up) {
+                return static_cast<uint16_t>(kServoNeutralUs + travel_us);
+            }
+            return static_cast<uint16_t>(kServoNeutralUs - travel_us);
         };
 
-        uint16_t roll_left_servo = aileron_pulse(left_deflection);
-        uint16_t roll_right_servo = aileron_pulse(right_deflection);
+        uint16_t roll_left_servo = aileron_pulse(left_deflection, /*is_right_servo=*/false);
+        uint16_t roll_right_servo = aileron_pulse(right_deflection, /*is_right_servo=*/true);
         uint16_t pitch_servo = static_cast<uint16_t>(kServoNeutralUs + pitch * kElevatorRangeUs);
         uint16_t yaw_servo = static_cast<uint16_t>(kServoNeutralUs + yaw * kRudderRangeUs);
         uint16_t throttle_esc = static_cast<uint16_t>(kEscMinUs + throttle * kEscRangeUs);
@@ -203,4 +218,3 @@ int main() {
     }
 
     udp_recv(pcb, udp_receive_callback, &state);
-    
