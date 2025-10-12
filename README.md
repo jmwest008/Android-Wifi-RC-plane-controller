@@ -41,13 +41,15 @@ Pico firmware only has to scale it to the configured ESC travel.
 ### Control signal orientation
 
 - Moving the **left joystick to the right** reports a positive roll value.
-- `main.cpp` mirrors that single roll input into two aileron commands:
-  - The **left servo** receives a negative PWM delta, rotating clockwise and
-    driving the control surface **down**.
-  - The **right servo** receives an equal positive delta, rotating
-    counter-clockwise and pushing the surface **up**.
-- Negative roll values reverse those directions, while pitch and yaw are
-  applied symmetrically about neutral.
+- `main.cpp` forwards that positive roll value to both aileron channels and
+  converts it to PWM based on servo orientation:
+  - The **right servo** uses the full upward travel range, reducing the pulse
+    width (clockwise rotation) to lift the surface.
+  - The **left servo** also shortens the pulse, producing a clockwise rotation
+    that pushes the surface down with the configured reduced downward range.
+- Negative roll values expand the pulse widths instead, giving the right servo
+  its reduced downward throw and lifting the left surface with the full upward
+  range. Pitch and yaw remain symmetric about neutral.
 
 ## Setup and Installation
 
