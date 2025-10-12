@@ -218,3 +218,20 @@ int main() {
     }
 
     udp_recv(pcb, udp_receive_callback, &state);
+
+    while (true) {
+        absolute_time_t now = get_absolute_time();
+        if (state.controls_active &&
+            absolute_time_diff_us(state.last_packet, now) > kSafetyTimeoutMs * 1000) {
+            set_safe_mode();
+            state.controls_active = false;
+        }
+
+        cyw43_arch_poll();
+        sleep_ms(10);
+    }
+
+    udp_remove(pcb);
+    cyw43_arch_deinit();
+    return 0;
+}
