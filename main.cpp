@@ -108,9 +108,9 @@ namespace {
 
         uint16_t roll_left_servo = aileron_pulse(left_deflection, /*is_right_servo=*/false);
         uint16_t roll_right_servo = aileron_pulse(right_deflection, /*is_right_servo=*/true);
-        uint16_t pitch_servo = static_cast<uint16_t>(kServoNeutralUs + pitch * kElevatorRangeUs);
+        uint16_t pitch_servo = static_cast<uint16_t>(kServoNeutralUs - pitch * kElevatorRangeUs);
         uint16_t yaw_servo = static_cast<uint16_t>(kServoNeutralUs - yaw * kRudderRangeUs);
-        uint16_t throttle_esc = static_cast<uint16_t>(kEscMinUs - throttle * kEscRangeUs);
+        uint16_t throttle_esc = static_cast<uint16_t>(kEscMinUs + throttle * kEscRangeUs);
 
         return {{roll_left_servo, roll_right_servo, pitch_servo, yaw_servo}, throttle_esc};
     }
