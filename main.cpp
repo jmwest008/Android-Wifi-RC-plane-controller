@@ -21,7 +21,7 @@ namespace {
     constexpr uint kEscPin = 4;
     constexpr uint32_t kPwmWrap = 20000;           // 20 ms period -> 50 Hz
     constexpr float kPwmClockDiv = 125.0f;         // 125 MHz / 125 = 1 MHz -> 1us resolution
-    constexpr uint16_t kServoNeutralUs = 1500;
+    constexpr uint16_t kServoNeutralUs = 1580;
     constexpr uint16_t kAileronUpRangeUs = 356;
     constexpr float kAileronDownRatio = 0.85f;
     constexpr uint16_t kElevatorRangeUs = 344;
@@ -109,8 +109,8 @@ namespace {
         uint16_t roll_left_servo = aileron_pulse(left_deflection, /*is_right_servo=*/false);
         uint16_t roll_right_servo = aileron_pulse(right_deflection, /*is_right_servo=*/true);
         uint16_t pitch_servo = static_cast<uint16_t>(kServoNeutralUs + pitch * kElevatorRangeUs);
-        uint16_t yaw_servo = static_cast<uint16_t>(kServoNeutralUs + yaw * kRudderRangeUs);
-        uint16_t throttle_esc = static_cast<uint16_t>(kEscMinUs + throttle * kEscRangeUs);
+        uint16_t yaw_servo = static_cast<uint16_t>(kServoNeutralUs - yaw * kRudderRangeUs);
+        uint16_t throttle_esc = static_cast<uint16_t>(kEscMinUs - throttle * kEscRangeUs);
 
         return {{roll_left_servo, roll_right_servo, pitch_servo, yaw_servo}, throttle_esc};
     }
