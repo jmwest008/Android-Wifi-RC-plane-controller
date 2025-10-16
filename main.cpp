@@ -17,8 +17,8 @@ namespace {
     constexpr size_t kBufferSize = 16;
     constexpr uint32_t kSafetyTimeoutMs = 1000;
 
-    constexpr std::array<uint, 4> kServoPins = {0, 1, 2, 3};
-    constexpr uint kEscPin = 4;
+    constexpr std::array<uint, 4> kServoPins = {4, 3, 18, 17};
+    constexpr uint kEscPin = 28;
     constexpr uint32_t kPwmWrap = 20000;           // 20 ms period -> 50 Hz
     constexpr float kPwmClockDiv = 125.0f;         // 125 MHz / 125 = 1 MHz -> 1us resolution
     constexpr uint16_t kServoNeutralUs = 1580;
