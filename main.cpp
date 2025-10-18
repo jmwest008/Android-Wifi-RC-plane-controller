@@ -7,6 +7,7 @@
 #include "hardware/pwm.h"
 #include "pico/cyw43_arch.h"
 
+#include "lwip/def.h"
 #include "lwip/pbuf.h"
 #include "lwip/udp.h"
 
