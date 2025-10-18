@@ -24,7 +24,7 @@ class UdpService {
         val pitch: Float = 0f,     // -1.0 to 1.0  
         val yaw: Float = 0f,       // -1.0 to 1.0
         val throttle: Int = 0,     // 0 to 100
-        val armed: Boolean = false
+        val armed: Boolean = false // true or false
     )
 
     private val currentData = AtomicReference(FlightData())
@@ -81,7 +81,7 @@ class UdpService {
         socket = null
         targetAddress = null
     }
-    
+
     private suspend fun sendFlightData() {
         val targetAddr = targetAddress ?: return
         val sock = socket ?: return
@@ -89,25 +89,37 @@ class UdpService {
         val snapshot = currentData.get()
 
         // Create binary packet: 4 floats = 16 bytes
+        // The packet structure does not change for the Pico.
         val buffer = ByteBuffer.allocate(16).apply {
             order(ByteOrder.LITTLE_ENDIAN)
-            putFloat(snapshot.roll)
-            putFloat(snapshot.pitch)
-            putFloat(snapshot.yaw)
-            putFloat(snapshot.throttle / 100f) // Normalize to 0-1
+            if (snapshot.armed) {
+                // If armed, send live control data
+                putFloat(snapshot.roll)
+                putFloat(snapshot.pitch)
+                putFloat(snapshot.yaw)
+                putFloat(snapshot.throttle / 100f) // Normalize to 0-1
+            } else {
+                // If disarmed, send a packet of all neutral values
+                putFloat(0f) // roll
+                putFloat(0f) // pitch
+                putFloat(0f) // yaw
+                putFloat(0f) // throttle
+            }
         }
-        
+
         val packet = DatagramPacket(
             buffer.array(),
             buffer.array().size,
             targetAddr,
             targetPort
         )
-        
+
         withContext(Dispatchers.IO) {
             sock.send(packet)
         }
     }
-    
+
+
+
     fun isConnected(): Boolean = isRunning && socket != null && !socket!!.isClosed
 }

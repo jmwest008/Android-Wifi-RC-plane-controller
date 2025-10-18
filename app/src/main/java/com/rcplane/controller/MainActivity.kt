@@ -74,15 +74,17 @@ class MainActivity : AppCompatActivity() {
         binding.armButton.setOnClickListener {
             isArmed = true
             udpService.updateFlightData(armed = true)
+            // Update all UI elements to reflect arming
             updateArmButtons()
+            updateDataDisplay()
         }
         
         binding.disarmButton.setOnClickListener {
             isArmed = false
             udpService.updateFlightData(armed = false)
+            // Update all UI elements to reflect disarming
             updateArmButtons()
-            // Reset throttle when disarming
-            binding.throttleSlider.progress = 0
+            updateDataDisplay()
         }
         
         updateArmButtons()
@@ -156,8 +158,9 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
         // Disarm and stop throttle when app goes to background for safety
         isArmed = false
-        binding.throttleSlider.progress = 0
-        udpService.updateFlightData(armed = false, throttle = 0)
+        udpService.updateFlightData(armed = false)
+        // Update all UI elements to reflect disarming
         updateArmButtons()
+        updateDataDisplay()
     }
 }
